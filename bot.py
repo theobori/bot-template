@@ -8,6 +8,7 @@ log: logging.Logger = logging.getLogger(__name__)
 
 extensions: Tuple[str] = (
     "cogs.moderator",
+    "cogs.log"
 )
 
 class Bot(commands.Bot):
@@ -34,3 +35,9 @@ class Bot(commands.Bot):
     async def on_command(self, ctx: commands.Context):
         destination: str = [f"#{ctx.channel} ({ctx.guild})", "DM"][not ctx.guild]
         log.info(f"{ctx.author} used command in {destination}: {ctx.message.content}")
+
+    async def on_guild_join(self, guild):
+        log.warning(f"{self.user} (ID: {self.user.id}) has joined {guild.name} (ID: {guild.id})")
+
+    async def on_guild_remove(self, guild):
+        log.warning(f"{self.user} (ID: {self.user.id}) has left {guild.name} (ID: {guild.id})")

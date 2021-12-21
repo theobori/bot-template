@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Check this packages
-pkg=(python3 python3-pip)
+pkg=(python3 python3-pip mysql-server)
 pkg_manager=(apt brew)
 
 # Check your default package manager and install packages

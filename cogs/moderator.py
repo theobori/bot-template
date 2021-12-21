@@ -4,7 +4,6 @@ from typing import *
 from discord.ext import commands
 
 from utils.utilities import read_json
-
 REACTION = read_json("data/json/reaction.json")
 
 class Moderator(commands.Cog):
@@ -17,6 +16,12 @@ class Moderator(commands.Cog):
         await ctx.message.delete()
         await ctx.send(f"[{REACTION['loading']}]")
         await ctx.channel.purge(limit = n + 1)
+
+    @commands.has_permissions(administrator=True)
+    @commands.command()
+    async def setlog(self, ctx: commands.Context):
+        """Set channel id for logs"""
+        # TODO
 
 def setup(bot: commands.Bot):
     bot.add_cog(Moderator(bot))
