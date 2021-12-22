@@ -19,7 +19,7 @@ class Page:
     page: int
 
 class Pages:
-    """Class that manage Page objects"""
+    """Manage Page objects"""
 
     def __init__(self):
         self.pages: Dict[int, Page] = {}
@@ -35,21 +35,18 @@ class Pages:
         obj: Page = self.pages[msg_id]
         if (obj.author_id != user.id): return
 
-        # Check out of range
         if (obj.page + move < 0 or obj.page + move > len(obj.data) - 1):
             return
 
-        # Change page
         obj.page += move
 
-        # Edit msg with fancy display
         display: str = "```" + '\n'.join(obj.data[obj.page]) + "```"
         embed = discord.Embed(color = 0x000000, description = display)
         embed.set_footer(text = f"page {obj.page + 1} / {len(obj.data)}")
         await obj.msg.edit(embed = embed)
 
     async def check_for_pages(self, reaction: object, user: object):
-        """Check reactions for 'resolve'"""
+        """Check reactions"""
         _id: int = reaction.message.id
         page: Dict[str, str] = REACTION["pages"]
     

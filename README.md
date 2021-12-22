@@ -7,7 +7,7 @@ bash install.sh
 ```
 
 
-### Setup bot
+### Setup
 
 1. Install the dependencies 
     - Run the bash script `install.sh` (Can request sudo)
