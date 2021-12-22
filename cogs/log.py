@@ -4,13 +4,11 @@ from typing import *
 from discord import channel
 from discord.ext import commands
 import logging, discord, datetime, os
-import pandas as pd
 
 from cogs.sql import LogRequest
-from utils.utilities import bmessage
+from utils.utilities import bmessage, bframe
 
 log = logging.getLogger(__name__)
-
 
 def has_log(func) -> callable:
     """Decorator that will call func"""
@@ -21,16 +19,6 @@ def has_log(func) -> callable:
         except:
             log.info("Failed to send log")
     return (inner)
-
-def bframe(data: dict) -> pd.DataFrame:
-    """Return a basic frame (name, value)"""
-
-    data = data or {"--": "--"}
-    data = {
-        "Name": data.keys(),
-        "Value": data.values()
-    }
-    return (pd.DataFrame(data=data).to_string(index=False))
 
 def fill_min(*args: Tuple[list]) -> list:
     """Set every list with the same length"""
@@ -55,7 +43,7 @@ class Log(commands.Cog, LogRequest):
 
         if not category or not channel_id:
             return
-        
+
         try:
             channel_id = int(channel_id)
             self.execute(f"""INSERT INTO guild_log_channel (guild_id, {category})
@@ -64,6 +52,9 @@ class Log(commands.Cog, LogRequest):
                 UPDATE {category} = {channel_id}""")
         except:
             return (await bmessage(ctx, f"❌ Failed to set log", "See help for put"))
+
+        if not channel_id in map(lambda x: x.id, ctx.guild.text_channels):
+            return (await bmessage(ctx, "❌ Unauthorized channel"))
 
         channel = self.bot.get_channel(channel_id)
         if (not channel):
@@ -139,10 +130,10 @@ class Log(commands.Cog, LogRequest):
 
         linker: Dict[str, callable] = self.generate_linker()
         if not key in linker.keys():
-            return (await bmessage(ctx, "❌ Failed", "See help for similar command like put"))
+            return (await bmessage(ctx, "❌ Failed", "See help for sho"))
 
         frame = bframe(linker[key]["show"](ctx.guild.id))
-        await ctx.send(f"```{frame}```")
+        await bmessage(ctx, f"```{frame}```")
 
     async def attachment_handler(self, msg: discord.Message, embed: discord.Embed):
         """If there is an attachment, it adds it to the embed"""

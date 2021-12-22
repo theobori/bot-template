@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from discord.ext import commands
 
 from utils.utilities import read_json
-REACTION = read_json("json/reaction.json")
+REACTION = read_json("data/json/reaction.json")
 
 def make_groups(arr: Any, size: int) -> list:
     return [arr[i:i + size] for i in range(0, len(arr), size)]
@@ -24,31 +24,69 @@ class Pages:
     def __init__(self):
         self.pages: Dict[int, Page] = {}
     
-    def add_page(self, msg, author_id: str, pages: List[List[str]]):
+    def _add_page(self, msg: discord.Message, author_id: str, pages: List[List[str]]):
+        """Add a page to self.pages"""
+
         self.pages[msg.id] = Page(msg, author_id, pages, 0)
 
-    async def change_page(self, r_dst: object, msg_id: str, r_src: str, move: int, user: object):
-        """Go to previous or next page"""
-        if (str(r_dst) != r_src): return
-        if (not msg_id in list(self.pages.keys())): return
+    async def send_first_page(self, ctx: commands.Context, pages: List[List[str]]):
+        """Create and send the first page"""
+
+        embed = discord.Embed(
+            color       = 0x000000,
+            description = "```" + '\n'.join(pages[0]) + "```"
+        )
+        embed.set_footer(text=f"page 1 / {len(pages)}")
+
+        msg = await ctx.send(embed=embed)
+        for _, v in REACTION["pages"].items():
+            await msg.add_reaction(v)
+
+        self._add_page(msg, ctx.author.id, pages)
+
+    def _get_obj(self, r_dst: object, msg_id: str, r_src: str, user: object) -> bool:
+        if (str(r_dst) != r_src):
+            return (None)
+
+        if (not msg_id in list(self.pages.keys())):
+            return (None)
 
         obj: Page = self.pages[msg_id]
-        if (obj.author_id != user.id): return
+        if (obj.author_id != user.id):
+            return (None)
+
+        return (obj)
+
+    async def _change_page(self, r_dst: object, msg_id: str, r_src: str, move: int, user: object):
+        """Go to previous or next page"""
+
+        obj = self._get_obj(r_dst, msg_id, r_src, user)
+        if (not obj): return
 
         if (obj.page + move < 0 or obj.page + move > len(obj.data) - 1):
             return
 
         obj.page += move
 
-        display: str = "```" + '\n'.join(obj.data[obj.page]) + "```"
+        display = "```" + '\n'.join(obj.data[obj.page]) + "```"
         embed = discord.Embed(color=0x000000, description=display)
         embed.set_footer(text=f"page {obj.page + 1} / {len(obj.data)}")
         await obj.msg.edit(embed=embed)
 
+    async def _delete(self, r_dst: object, msg_id: str, r_src: str, user: object):
+        """Delete the author message"""
+
+        obj = self._get_obj(r_dst, msg_id, r_src, user)
+        if (not obj): return
+        
+        await obj.msg.delete()
+
     async def check_for_pages(self, reaction: object, user: object):
         """Check reactions"""
-        _id: int = reaction.message.id
-        page: Dict[str, str] = REACTION["pages"]
+
+        _id = reaction.message.id
+        page = REACTION["pages"]
     
-        await self.change_page(reaction, _id, page["previous"], -1, user)
-        await self.change_page(reaction, _id, page["next"], 1, user)
+        await self._change_page(reaction, _id, page["previous"], -1, user)
+        await self._change_page(reaction, _id, page["next"], 1, user)
+        await self._delete(reaction, _id, page["delete"], user)

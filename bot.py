@@ -21,8 +21,8 @@ class Bot(commands.Bot, SQLCursor):
         SQLCursor.__init__(self)
 
         for extension in extensions:
-            self.load_extension(extension)
             try:
+                self.load_extension(extension)
                 log.info(f"Loaded the extension {extension}")
             except:
                 log.warning(f"Failed to load the extension {extension}")

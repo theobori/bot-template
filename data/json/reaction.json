@@ -1,7 +1,8 @@
 {
     "pages" : {
         "previous": "⬅️",
-        "next": "➡️"
+        "next": "➡️",
+        "delete": "🗑️"
     },
     "loading": "<a:loading:707979994428735548>"
 }
