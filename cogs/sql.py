@@ -31,7 +31,7 @@ class SQLCursor:
 
         if self.conn.is_connected():
             return
-        self.conn.reconnect(attempts = 1, delay = 0)
+        self.conn.reconnect(attempts=1, delay=0)
         time.sleep(wait)
         self.conn.commit()
     
@@ -51,7 +51,7 @@ class LogRequest(SQLCursor):
     def resolve_log(self, _id: str, category: str) -> Any:
         """Log category -> channel id"""
 
-        query = f"""SELECT {category} FROM guild_log WHERE
+        query = f"""SELECT {category} FROM guild_log_channel WHERE
             guild_id = {_id}"""
 
         self.execute(query)
@@ -71,3 +71,22 @@ class LogRequest(SQLCursor):
             return (response[permission])
         except:
             return (False)
+
+    def get_log_permissions(self, _id: str) -> List[Dict]:
+        """Return permissions values (bools)"""
+
+        query = f"""SELECT message_delete, message_edit, role_create,
+            role_update, role_delete FROM guild_log_permission 
+            WHERE guild_id={_id}"""
+        self.execute(query)
+        response = self.cursor.fetchone()
+        return (response)
+
+    def get_log_channels(self, _id: str) -> List[Dict]:
+        """Return linked channels ids"""
+
+        query = f"""SELECT messages, roles
+            FROM guild_log_channel WHERE guild_id={_id}"""
+        self.execute(query)
+        response = self.cursor.fetchone()
+        return (response)

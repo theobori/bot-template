@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 
 from typing import *
+from discord import channel
 from discord.ext import commands
-import logging, discord, datetime
+import logging, discord, datetime, os
+import pandas as pd
 
 from cogs.sql import LogRequest
 from utils.utilities import bmessage
@@ -10,7 +12,7 @@ from utils.utilities import bmessage
 log = logging.getLogger(__name__)
 
 
-def has_log(func):
+def has_log(func) -> callable:
     """Decorator that will call func"""
 
     async def inner(*args, **kwargs):
@@ -20,6 +22,27 @@ def has_log(func):
             log.info("Failed to send log")
     return (inner)
 
+def bframe(data: dict) -> pd.DataFrame:
+    """Return a basic frame (name, value)"""
+
+    data = data or {"--": "--"}
+    data = {
+        "Name": data.keys(),
+        "Value": data.values()
+    }
+    return (pd.DataFrame(data=data).to_string(index=False))
+
+def fill_min(*args: Tuple[list]) -> list:
+    """Set every list with the same length"""
+
+    length = len(max(*args, key=len))
+    args = list(args)
+    
+    for i in range(len(args)):
+        args[i] += (length - len(args[i])) * [" "]
+    return (args)
+
+
 class Log(commands.Cog, LogRequest):
     """Guild log controller"""
 
@@ -27,41 +50,28 @@ class Log(commands.Cog, LogRequest):
         self.bot = bot
         LogRequest.__init__(self)
 
-    @commands.has_permissions(administrator=True)
-    @commands.command()
-    async def setlog(self, ctx: commands.Context, category: str = None, channel_id: int = None):
-        """Link channel id with a log category
-            
-            **Available categories**:
-            - `messages`
-            - `voices`
-            - `roles`"""
+    async def setlog(self, ctx: commands.Context, category: str = None, channel_id: str = None):
+        """Link channel id with a log category"""
 
         if not category or not channel_id:
             return
         
         try:
-            self.execute(f"""INSERT INTO guild_log (guild_id, {category})
+            channel_id = int(channel_id)
+            self.execute(f"""INSERT INTO guild_log_channel (guild_id, {category})
                 VALUES({ctx.guild.id}, {channel_id})
                 ON DUPLICATE KEY
                 UPDATE {category} = {channel_id}""")
         except:
-            return (await bmessage(ctx, f"❌ Failed to set log", "See help for setlog"))
-        await (bmessage(ctx, f"✅ Set `{category}` logs with channel id `{channel_id}`"))
+            return (await bmessage(ctx, f"❌ Failed to set log", "See help for put"))
 
-    @commands.has_permissions(administrator=True)
-    @commands.command()
+        channel = self.bot.get_channel(channel_id)
+        if (not channel):
+            return (await bmessage(ctx, "❌ Channel doesn't exist"))
+        await (bmessage(ctx, f"✅ Set `{category}` logs with the channel {channel.mention}", f"Channel ID: {channel_id}"))
+
     async def setpermission(self, ctx: commands.Context, event: str = None, state: str = None):
-        """Enable or disable log for a specific event
-            
-            state can be 0 or 1
-
-            **Available events**:
-            - `message_delete`
-            - `message_edit`
-            - `role_create`
-            - `role_delete`
-            - `role_update`"""
+        """Enable or disable log for a specific event"""
 
         if not event or not state in map(str, range(2)):
             return
@@ -71,8 +81,84 @@ class Log(commands.Cog, LogRequest):
                 SET {event} = {state}
                 WHERE guild_id = {ctx.guild.id}""")
         except:
-            return (await bmessage(ctx, f"❌ Failed to set permission", "See help for setpermission"))
+            return (await bmessage(ctx, f"❌ Failed to set permission", "See help for put"))
         await (bmessage(ctx, f"{['🔓 Enabled', '🔒 Disabled'][not int(state)]} `{event}`"))
+
+    def generate_linker(self) -> Dict[str, callable]:
+        return ({
+                "log": {
+                    "set": self.setlog,
+                    "show": self.get_log_channels
+                },
+                "permission": {
+                    "set": self.setpermission,
+                    "show": self.get_log_permissions
+                }
+            })
+
+    @commands.has_permissions(administrator=True)
+    @commands.command()
+    async def put(self, ctx: commands.Context, modify: str = None, key: str = None, value: str = None):
+        """
+            key must be `log` or `permission`
+
+        __**Logs category**__
+            value must be a channel id
+
+            **Available categories**:
+            - `messages`
+            - `roles`
+        
+        __**Permissions**__
+            value can be 0 or 1
+
+            **Available events**:
+            - `message_delete`
+            - `message_edit`
+            - `role_create`
+            - `role_delete`
+            - `role_update`"""
+
+        if not modify or not key or not value:
+            return
+
+        linker: Dict[str, callable] = self.generate_linker()
+
+        if not modify in linker.keys():
+            return (await bmessage(ctx, "❌ Failed", "See help for set"))
+        await linker[modify]["set"](ctx, key, value)
+
+    @commands.has_permissions(administrator=True)
+    @commands.command()
+    async def show(self, ctx: commands.Context, key: str = None):
+        """Show informations about log, log permissions, etc ...
+        
+        key must be `log` or `permission`"""
+
+        linker: Dict[str, callable] = self.generate_linker()
+        if not key in linker.keys():
+            return (await bmessage(ctx, "❌ Failed", "See help for similar command like put"))
+
+        frame = bframe(linker[key]["show"](ctx.guild.id))
+        await ctx.send(f"```{frame}```")
+
+    async def attachment_handler(self, msg: discord.Message, embed: discord.Embed):
+        """If there is an attachment, it adds it to the embed"""
+        file = None
+
+        if not msg.attachments:
+            return (file)
+
+        attachment = msg.attachments[0]
+        name = attachment.filename
+    
+        with open(name, "wb") as f:
+            await attachment.save(f, use_cached=True)
+            file = discord.File(name, filename=name)
+            embed.set_image(url=f'attachment://{name}')
+            os.remove(name)
+
+        return (file)
 
     @has_log
     async def store_message(self, message: discord.Message, state: str):
@@ -80,15 +166,17 @@ class Log(commands.Cog, LogRequest):
 
         channel_id = self.resolve_log(message.guild.id, "messages")
 
-        embed = discord.Embed(title = state,
-            description = message.content, color = 0x000000,
-            timestamp = datetime.datetime.now())
-        embed.set_footer(text = f"ID: {message.id}")
-        author = message.author
-        embed.set_author(name = f"{author} - #{message.channel}",
-            icon_url = author.avatar_url_as(format = "png"))
+        embed = discord.Embed(title=state,
+            description=message.content, color=0x000000,
+            timestamp=datetime.datetime.now())
+        embed.set_footer(text=f"ID: {message.id}")
 
-        await self.bot.get_channel(int(channel_id)).send(embed = embed)
+        author = message.author
+        embed.set_author(name=f"{author} - #{message.channel}",
+            icon_url=author.avatar_url_as(format="png"))
+
+        file = await self.attachment_handler(message, embed)
+        await self.bot.get_channel(int(channel_id)).send(file=file, embed=embed)
 
     @has_log
     async def store_role(self, role: discord.Role, state: str):
@@ -99,15 +187,15 @@ class Log(commands.Cog, LogRequest):
         permissions = filter(lambda x: x[1], role.permissions)
         permissions = "\n".join(map(lambda x: x[0], permissions))
 
-        embed = discord.Embed(title = state,
-        description = f"""`{role.name}` - ID: `{role.id}`
+        embed = discord.Embed(title=state,
+        description=f"""`{role.name}` - ID: `{role.id}`
         
         **Color**
         {role.colour.value}
 
         **Permissions**
-        {permissions}""", color = 0x000000,
-        timestamp = datetime.datetime.now())
+        {permissions}""", color=0x000000,
+        timestamp=datetime.datetime.now())
     
         await self.bot.get_channel(int(channel_id)).send(embed = embed)
 

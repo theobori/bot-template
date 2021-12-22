@@ -17,7 +17,7 @@ class Bot(commands.Bot, SQLCursor):
     """Pirmary class that contains the bot object to run"""
 
     def __init__(self):
-        super().__init__(command_prefix = ["."], help_command=commands.MinimalHelpCommand())
+        super().__init__(command_prefix=["."], help_command=commands.MinimalHelpCommand())
         SQLCursor.__init__(self)
 
         for extension in extensions:
@@ -29,7 +29,7 @@ class Bot(commands.Bot, SQLCursor):
 
     async def on_ready(self):
         log.info(f"Logged in as {self.user} (ID: {self.user.id})")
-        await self.change_presence(activity = discord.Game(name = "a game"))
+        await self.change_presence(activity=discord.Game(name = "a game"))
 
     async def close(self):
         log.info("Closing")
@@ -44,10 +44,10 @@ class Bot(commands.Bot, SQLCursor):
 
         self.execute(f"""INSERT INTO guild_log_permission (guild_id)
             VALUES({guild.id})""")
-        self.conn.commit()
+        self.execute(f"""INSERT INTO guild_log_channel (guild_id)
+            VALUES({guild.id})""")
 
     async def on_guild_remove(self, guild: discord.Guild):
         log.warning(f"{self.user} (ID: {self.user.id}) has left {guild.name} (ID: {guild.id})")
 
-        self.execute(f"""DELETE FROM guild_log WHERE guild_id={guild.id}""")
-        self.conn.commit()
+        self.execute(f"""DELETE FROM guild_log_permission WHERE guild_id={guild.id}""")

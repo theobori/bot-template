@@ -20,7 +20,7 @@ log.addHandler(f)
 
 # Logger for stdout
 screen = logging.StreamHandler(sys.stdout)
-screen.setLevel(logging.DEBUG)
+screen.setLevel(logging.INFO)
 screen.setFormatter(formatter)
 log.addHandler(screen)
 
@@ -28,7 +28,7 @@ log.addHandler(screen)
 config = ConfigParser()
 config.read("config.ini")
 
-async def main() -> None:
+async def main():
     bot = Bot()
     await bot.start(config.get("DISCORD", "TOKEN"))
 

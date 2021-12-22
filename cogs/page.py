@@ -41,9 +41,9 @@ class Pages:
         obj.page += move
 
         display: str = "```" + '\n'.join(obj.data[obj.page]) + "```"
-        embed = discord.Embed(color = 0x000000, description = display)
-        embed.set_footer(text = f"page {obj.page + 1} / {len(obj.data)}")
-        await obj.msg.edit(embed = embed)
+        embed = discord.Embed(color=0x000000, description=display)
+        embed.set_footer(text=f"page {obj.page + 1} / {len(obj.data)}")
+        await obj.msg.edit(embed=embed)
 
     async def check_for_pages(self, reaction: object, user: object):
         """Check reactions"""
