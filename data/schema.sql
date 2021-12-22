@@ -20,7 +20,7 @@ CREATE TABLE `guild_log_channel` (
 CREATE TABLE `warn` (
 	`guild_id` VARCHAR(30),
 	`user_id` VARCHAR(30),
-	`count` INT DEFAULT 0,
+	`count` INT DEFAULT 1,
 	FOREIGN KEY (`guild_id`) REFERENCES `guild_log_permission`(`guild_id`) ON DELETE CASCADE,
 	UNIQUE KEY (`guild_id`, `user_id`)
 );
@@ -28,7 +28,7 @@ CREATE TABLE `warn` (
 CREATE TABLE `command_stat` (
     `guild_id` VARCHAR(30),
 	`name` VARCHAR(30),
-	`count` INT DEFAULT 0,
+	`count` INT DEFAULT 1,
 	FOREIGN KEY (`guild_id`) REFERENCES `guild_log_permission`(`guild_id`) ON DELETE CASCADE,
-    UNIQUE KEY (`guild_id`)
+    UNIQUE KEY (`guild_id`, `name`)
 );

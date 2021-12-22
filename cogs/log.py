@@ -100,6 +100,8 @@ class Log(commands.Cog, LogRequest):
     @commands.command()
     async def put(self, ctx: commands.Context, modify: str = None, key: str = None, value: str = None):
         """
+            Change informations like log channel, permissions state, etc...
+
             key must be `log` or `permission`
 
         __**Logs category**__
