@@ -130,7 +130,7 @@ class Log(commands.Cog, LogRequest):
 
         linker: Dict[str, callable] = self.generate_linker()
         if not key in linker.keys():
-            return (await bmessage(ctx, "❌ Failed", "See help for sho"))
+            return (await bmessage(ctx, "❌ Failed", "See help for show"))
 
         frame = bframe(linker[key]["show"](ctx.guild.id))
         await bmessage(ctx, f"```{frame}```")

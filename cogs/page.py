@@ -24,7 +24,7 @@ class Pages:
     def __init__(self):
         self.pages: Dict[int, Page] = {}
     
-    def _add_page(self, msg: discord.Message, author_id: str, pages: List[List[str]]):
+    def __add_page(self, msg: discord.Message, author_id: str, pages: List[List[str]]):
         """Add a page to self.pages"""
 
         self.pages[msg.id] = Page(msg, author_id, pages, 0)
@@ -42,9 +42,12 @@ class Pages:
         for _, v in REACTION["pages"].items():
             await msg.add_reaction(v)
 
-        self._add_page(msg, ctx.author.id, pages)
+        self.__add_page(msg, ctx.author.id, pages)
 
-    def _get_obj(self, r_dst: object, msg_id: str, r_src: str, user: object) -> bool:
+    def __get_obj(self, r_dst: object, msg_id: str, r_src: str, user: object) -> bool:
+        """If the user click on the right emoji + the message id exists,
+        then it will return the associated object"""
+
         if (str(r_dst) != r_src):
             return (None)
 
@@ -57,11 +60,12 @@ class Pages:
 
         return (obj)
 
-    async def _change_page(self, r_dst: object, msg_id: str, r_src: str, move: int, user: object):
+    async def __change_page(self, r_dst: object, msg_id: str, r_src: str, move: int, user: object):
         """Go to previous or next page"""
 
-        obj = self._get_obj(r_dst, msg_id, r_src, user)
-        if (not obj): return
+        obj = self.__get_obj(r_dst, msg_id, r_src, user)
+        if (not obj):
+            return
 
         if (obj.page + move < 0 or obj.page + move > len(obj.data) - 1):
             return
@@ -73,13 +77,15 @@ class Pages:
         embed.set_footer(text=f"page {obj.page + 1} / {len(obj.data)}")
         await obj.msg.edit(embed=embed)
 
-    async def _delete(self, r_dst: object, msg_id: str, r_src: str, user: object):
+    async def __delete(self, r_dst: object, msg_id: str, r_src: str, user: object):
         """Delete the author message"""
 
-        obj = self._get_obj(r_dst, msg_id, r_src, user)
-        if (not obj): return
+        obj = self.__get_obj(r_dst, msg_id, r_src, user)
+        if (not obj):
+            return
         
         await obj.msg.delete()
+        del self.pages[msg_id]
 
     async def check_for_pages(self, reaction: object, user: object):
         """Check reactions"""
@@ -87,6 +93,6 @@ class Pages:
         _id = reaction.message.id
         page = REACTION["pages"]
     
-        await self._change_page(reaction, _id, page["previous"], -1, user)
-        await self._change_page(reaction, _id, page["next"], 1, user)
-        await self._delete(reaction, _id, page["delete"], user)
+        await self.__change_page(reaction, _id, page["previous"], -1, user)
+        await self.__change_page(reaction, _id, page["next"], 1, user)
+        await self.__delete(reaction, _id, page["delete"], user)
