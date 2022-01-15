@@ -194,12 +194,16 @@ class Log(commands.Cog, LogRequest):
 
     @commands.Cog.listener()
     async def on_message_delete(self, message: discord.Message):
+        if (message.author.bot):
+            return
         if (not self.get_log_permission(message.guild.id, "message_delete")):
             return
         await self.store_message(message, "Message deleted")
 
     @commands.Cog.listener()
     async def on_message_edit(self, previous: discord.Message, new: discord.Message):
+        if (previous.author.bot):
+            return
         if (not self.get_log_permission(previous.guild.id, "message_edit")):
             return
         await self.store_message(previous, "Message before the edit")
