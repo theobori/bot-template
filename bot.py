@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 
 from typing import *
+from configparser import ConfigParser
 from discord.ext import commands
 import discord, logging
 
 from cogs.sql import SQLCursor
 
 log: logging.Logger = logging.getLogger(__name__)
+config = ConfigParser()
+config.read("config.ini")
 
 extensions: Tuple[str] = (
     "cogs.moderator",
@@ -17,7 +20,10 @@ class Bot(commands.Bot, SQLCursor):
     """Pirmary class that contains the bot object to run"""
 
     def __init__(self):
-        super().__init__(command_prefix=["."], help_command=commands.MinimalHelpCommand())
+        self.bot_options = {}
+
+        self._get_options()
+        super().__init__(**self.bot_options)
         SQLCursor.__init__(self)
 
         for extension in extensions:
@@ -26,6 +32,12 @@ class Bot(commands.Bot, SQLCursor):
                 log.info(f"Loaded the extension {extension}")
             except:
                 log.warning(f"Failed to load the extension {extension}")
+
+    def _get_options(self):
+        for k, v in config.items("BOT"):
+            k = k.lower()
+            if (v):
+                self.bot_options[k] = eval(v)
 
     async def on_ready(self):
         log.info(f"Logged in as {self.user} (ID: {self.user.id})")
