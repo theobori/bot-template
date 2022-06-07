@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+"""main file"""
 
 from bot import Bot
 from configparser import ConfigParser
@@ -7,30 +7,30 @@ import asyncio, logging, sys
 from utils.utilities import *
 
 # Setup log system
-log = logging.getLogger()
-log.setLevel(logging.INFO)
+LOG = logging.getLogger()
+LOG.setLevel(logging.INFO)
 
-formatter = logging.Formatter("[%(asctime)s][%(levelname)s]: %(message)s", "%Y-%m-%d %H:%M:%S")
+FORMATTER = logging.Formatter("[%(asctime)s][%(levelname)s]: %(message)s", "%Y-%m-%d %H:%M:%S")
 
 # Logger for a file
 f = logging.FileHandler("logs/bot.log", "a", encoding="utf-8")
 f.setLevel(logging.INFO)
-f.setFormatter(formatter)
-log.addHandler(f)
+f.setFormatter(FORMATTER)
+LOG.addHandler(f)
 
 # Logger for stdout
 screen = logging.StreamHandler(sys.stdout)
 screen.setLevel(logging.INFO)
-screen.setFormatter(formatter)
-log.addHandler(screen)
+screen.setFormatter(FORMATTER)
+LOG.addHandler(screen)
 
 # Get environment variables (config.ini)
-config = ConfigParser()
-config.read("config.ini")
+CONFIG = ConfigParser()
+CONFIG.read("config.ini")
 
 async def main():
     bot = Bot()
-    await bot.start(config.get("DISCORD", "TOKEN"))
+    await bot.start(CONFIG.get("DISCORD", "TOKEN"))
 
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()

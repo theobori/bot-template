@@ -1,4 +1,3 @@
-requests
 pandas
 discord.py
-mysql.connector
+mariadb

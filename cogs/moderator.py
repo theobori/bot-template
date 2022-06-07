@@ -1,85 +1,111 @@
-#!/usr/bin/env python3
+"""moderation cog"""
 
-from typing import *
 from discord.ext import commands
 import discord
 
-from cogs.sql import SQLCursor
-from cogs.page import Pages, make_groups
-from utils.utilities import bframe, bmessage, read_json
-REACTION = read_json("data/json/reaction.json")
+from utils.database import CursorDB
+from utils.page import Pages, make_groups
+from utils.utilities import basic_frame, basic_message
 
-class Moderator(commands.Cog, SQLCursor, Pages):
-    """Commands for the administrators, moderators"""
+from utils.reactions import Reactions
+
+class Moderator(commands.Cog, CursorDB, Pages):
+    """
+        Commands for the administrators, moderators
+    """
 
     def __init__(self, bot):
-        SQLCursor.__init__(self)
+        CursorDB.__init__(self)
         Pages.__init__(self)
 
         self.bot = bot
 
     @commands.Cog.listener()
     async def on_reaction_add(self, reaction: object, user: object):
-        if (not reaction.message.author.bot or user.bot):
+        if not reaction.message.author.bot or user.bot:
             return
+
         await reaction.remove(user)
-        await self.check_for_pages(reaction, user)
+        await self.handler(reaction, user)
 
     @commands.has_permissions(administrator=True)
     @commands.command()
     async def clear(self, ctx: commands.Context, n: int = 1):
-        """Removes n message"""
+        """
+            Removes n message
+        """
 
         await ctx.message.delete()
-        await ctx.send(f"[{REACTION['loading']}]")
+        await ctx.send(Reactions.LOADING)
         await ctx.channel.purge(limit = n + 1)
 
     @commands.has_permissions(administrator=True)
     @commands.command(aliases=["command_stats"])
     async def cs(self, ctx: commands.Context):
-        """Show how many times each commands has been used"""
+        """
+            Show how many times each commands has been used
+        """
 
         self.execute(f"""SELECT name, count FROM command_stat
             WHERE guild_id={ctx.guild.id}""")
+
         response = self.cursor.fetchall()
 
         if not response:
-            return (await bmessage(ctx, "❌ Empty"))
+            return (await basic_message(ctx, "❌ Empty"))
         
         response = sorted(response, key=lambda item: int(item["count"]))[::-1]
         data = {item["name"]: item["count"] for item in response}
-        frame = bframe(data)
-        pages = make_groups(frame.split("\n"), 10)
-        await self.send_first_page(ctx, pages)
+        page_content = basic_frame(data).split("\n")
+        page_content = make_groups(page_content, 10)
+
+        await self.create(ctx, page_content)
 
     @commands.has_permissions(administrator=True)
     @commands.command()
     async def warn(self, ctx: commands.Context, member: discord.Member, reason: str = "No reason given"):
-        """Warn an user"""
+        """
+            Warn an user on a Discord guild
+        """
 
         self.execute(f"""INSERT INTO warn (guild_id, user_id)
             VALUES({ctx.guild.id}, {member.id})
             ON DUPLICATE KEY
             UPDATE count = count + 1""")
         
-        await bmessage(ctx, f"⚠️ {member.mention} has been warned by `{ctx.author}`", f"Reason: {reason}")
+        await basic_message(
+            ctx,
+            f"⚠️ {member.mention} has been warned by `{ctx.author}`",
+            f"Reason: {reason}"
+        )
     
     @commands.has_permissions(administrator=True)
     @commands.command(aliases=["warn_stats"])
     async def ws(self, ctx: commands.Context):
-        """Show every user warned"""
+        """
+            Show every user warned
+        """
+
+        data = {}
 
         self.execute(f"""SELECT user_id, count FROM warn
             WHERE guild_id={ctx.guild.id}""")
         response = self.cursor.fetchall()
 
         if not response:
-            return (await bmessage(ctx, "❌ Empty"))
+            return await basic_message(ctx, "❌ Empty")
         
-        data = {await self.bot.fetch_user(int(item["user_id"])): item["count"] for item in response}
-        frame = bframe(data)
-        pages = make_groups(frame.split("\n"), 10)
-        await self.send_first_page(ctx, pages)
+        for item in response:
+            user_id = int(item["user_id"])
+            user = await self.bot.fetch_user(user_id)
+            key = f"{user} ({user_id})"
+
+            data[key] = item["count"]
+
+        page_content = basic_frame(data).split("\n")
+        pages = make_groups(page_content, 10)
+
+        await self.create(ctx, pages)
 
 def setup(bot: commands.Bot):
     bot.add_cog(Moderator(bot))
