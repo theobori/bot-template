@@ -4,7 +4,6 @@ import discord
 
 from typing import Any, List, Union
 from discord.ext import commands
-from matplotlib import use
 
 from utils.binds import Binds
 from utils.reactions import Reactions, PageReaction

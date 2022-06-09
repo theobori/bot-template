@@ -3,18 +3,19 @@
 import logging
 import mariadb
 
-from configparser import ConfigParser
 from typing import Any, List, Dict
 
+from utils.config import DockerConfig
+
 LOG = logging.getLogger(__name__)
-CONFIG = ConfigParser()
-CONFIG.read("config.ini")
+CONFIG = DockerConfig("config.ini")
 
 DBCONFIG = {
-    "host": CONFIG.get("DATABASE", "HOST"),
-    "user": CONFIG.get("DATABASE", "USER"),
-    "passwd": CONFIG.get("DATABASE", "PASSWORD"),
-    "database": CONFIG.get("DATABASE", "DB_NAME")
+    "host":     CONFIG.get_var("DATABASE", "HOST"),
+    "user":     CONFIG.get_var("DATABASE", "USER"),
+    "passwd":   CONFIG.get_var("DATABASE", "PASSWORD"),
+    "database": CONFIG.get_var("DATABASE", "DB_NAME"),
+    "port":     int(CONFIG.get_var("DATABASE", "PORT"))
 }
 
 class CursorDB:

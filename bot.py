@@ -1,15 +1,14 @@
 """Overriding commands.Bot"""
 
 from typing import *
-from configparser import ConfigParser
 from discord.ext import commands
 import discord, logging
 
+from utils.config import DockerConfig
 from utils.database import CursorDB
 
 LOG: logging.Logger = logging.getLogger(__name__)
-CONFIG = ConfigParser()
-CONFIG.read("config.ini")
+CONFIG = DockerConfig("config.ini")
 
 extensions: Tuple[str] = (
     "cogs.moderator",
@@ -27,11 +26,11 @@ class Bot(commands.Bot, CursorDB):
         CursorDB.__init__(self)
 
         for extension in extensions:
-            try:
-                self.load_extension(extension)
-                LOG.info(f"Loaded the extension {extension}")
-            except:
-                LOG.warning(f"Failed to load the extension {extension}")
+            # try:
+            self.load_extension(extension)
+            LOG.info(f"Loaded the extension {extension}")
+            # except:
+                # LOG.warning(f"Failed to load the extension {extension}")
 
     def _get_options(self):
         for k, v in CONFIG.items("BOT"):

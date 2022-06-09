@@ -1,10 +1,10 @@
 """main file"""
 
 from bot import Bot
-from configparser import ConfigParser
 import asyncio, logging, sys
 
 from utils.utilities import *
+from utils.config import DockerConfig
 
 # Setup log system
 LOG = logging.getLogger()
@@ -25,8 +25,7 @@ screen.setFormatter(FORMATTER)
 LOG.addHandler(screen)
 
 # Get environment variables (config.ini)
-CONFIG = ConfigParser()
-CONFIG.read("config.ini")
+CONFIG = DockerConfig("config.ini")
 
 async def main():
     bot = Bot()
